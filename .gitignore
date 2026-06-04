@@ -1,0 +1,19 @@
+# Dependencies
+/frontend/node_modules/
+/backend/venv/
+__pycache__/
+*.pyc
+
+# Local Database
+/backend/jobs.db
+/backend/jobs.db-journal
+
+# Environment variables & Logs
+.env
+*.log
+/scratch/
+/artifacts/
+
+# OS Files
+.DS_Store
+Thumbs.db
