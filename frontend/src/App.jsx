@@ -860,13 +860,37 @@ export default function App() {
                         onChange={(e) => setSettings(prev => ({ ...prev, email_recipient: e.target.value }))}
                       />
                     </div>
+
+                    <div style={{
+                      marginTop: '16px',
+                      padding: '12px 16px',
+                      background: 'rgba(255, 255, 255, 0.02)',
+                      border: '1px solid var(--border-color)',
+                      borderRadius: '8px',
+                      fontSize: '13px',
+                      color: 'var(--text-secondary)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '6px'
+                    }}>
+                      <div style={{ fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <Info size={14} style={{ color: 'var(--primary-light)' }} />
+                        <span>How to configure Gmail SMTP?</span>
+                      </div>
+                      <ol style={{ margin: '0 0 0 16px', padding: 0, display: 'flex', flexDirection: 'column', gap: '4px', lineHeight: '1.4' }}>
+                        <li>Set <strong>SMTP Server Host</strong> to <code>smtp.gmail.com</code> and <strong>SMTP Port</strong> to <code>587</code>.</li>
+                        <li>Enter your Gmail address in <strong>Sender Address (From)</strong>.</li>
+                        <li>Enter your target recipient address in <strong>Recipient Address (To)</strong>.</li>
+                        <li>For <strong>Sender SMTP Password</strong>, generate a 16-character <strong>App Password</strong> in your Google Account Settings (Security &gt; 2-Step Verification &gt; App Passwords). <em>Your regular Gmail login password will not work.</em></li>
+                      </ol>
+                    </div>
                     
                     <button 
                       type="button" 
                       onClick={() => handleTestNotification('email')}
                       disabled={testLoading['email']}
                       className="btn btn-secondary" 
-                      style={{ marginTop: '12px' }}
+                      style={{ marginTop: '16px' }}
                     >
                       {testLoading['email'] ? <RefreshCw size={14} className="spinner" /> : <Bell size={14} />}
                       <span>Test Email Digest</span>

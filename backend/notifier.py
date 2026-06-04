@@ -205,6 +205,8 @@ def test_channel_notification(settings: Settings, channel: str) -> tuple[bool, s
         return success, "Discord notification sent!" if success else "Failed to send Discord webhook. Check URL."
         
     elif channel == "email":
+        if not (settings.email_smtp_server and settings.email_sender and settings.email_password):
+            return False, "SMTP configuration is incomplete. Please enter SMTP Host, Sender Address, and SMTP Password."
         dummy_job = Job(
             company="Test Company",
             title="Software Engineer (Test)",
