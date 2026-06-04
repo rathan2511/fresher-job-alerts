@@ -158,6 +158,45 @@ def is_fresher_job(title: str, description: str = "") -> bool:
                     
     return True
 
+def is_india_or_remote_location(location: str) -> bool:
+    """Filter out roles outside India, ensuring we only include India locations or remote roles"""
+    if not location or not isinstance(location, str):
+        return True # Default to True to prevent filtering out unknown but valid direct jobs
+        
+    loc_lower = location.lower()
+    
+    # Specific keywords indicating foreign countries or major cities outside India
+    exclude_keywords = [
+        r"\bunited states\b", r"\bus\b", r"\busa\b", r"\bunited kingdom\b", r"\buk\b",
+        r"\blondon\b", r"\bsingapore\b", r"\bcanada\b", r"\btoronto\b", r"\bvancouver\b",
+        r"\baustralia\b", r"\bsydney\b", r"\bmelbourne\b", r"\bgermany\b", r"\bberlin\b",
+        r"\bmunich\b", r"\bnetherlands\b", r"\bamsterdam\b", r"\bireland\b", r"\bdublin\b",
+        r"\bfrance\b", r"\bparis\b", r"\bdubai\b", r"\buae\b", r"\bpoland\b", r"\bspain\b",
+        r"\bjapan\b", r"\btokyo\b", r"\bchina\b", r"\bhong kong\b", r"\bswitzerland\b",
+        r"\beurope\b", r"\bsan francisco\b", r"\bnew york\b", r"\bseattle\b", r"\baustin\b",
+        r"\bcalifornia\b", r"\bchicago\b", r"\bboston\b", r"\bdenver\b", r"\blos angeles\b"
+    ]
+    
+    for pattern in exclude_keywords:
+        if re.search(pattern, loc_lower):
+            return False
+            
+    # Positive validation: must be in India or remote
+    india_or_remote_keywords = [
+        "india", "bengaluru", "bangalore", "pune", "mumbai", "delhi", 
+        "noida", "gurgaon", "gurugram", "hyderabad", "chennai", 
+        "kolkata", "ahmedabad", "jaipur", "kochi", "coimbatore", 
+        "remote", "wfh", "work from home", "anywhere", "bengalaru", "karnataka",
+        "maharashtra", "haryana", "telangana", "tamil nadu"
+    ]
+    
+    for kw in india_or_remote_keywords:
+        if kw in loc_lower:
+            return True
+            
+    # Default to False if it doesn't match any India cities or remote keywords
+    return False
+
 def verify_and_resolve_url(url: str, company_domain: str | None) -> tuple[str, bool]:
     """Resolve redirect links and verify they point to trusted domains or company domain"""
     if not url:
@@ -242,11 +281,22 @@ def check_job_active(job: Job) -> tuple[str, bool]:
         return job.id, True
 
 def prune_expired_jobs(db: Session):
-    """Scan stored jobs and remove any that are no longer active on their career portals"""
+    """Scan stored jobs and remove any that are expired or located outside India"""
     jobs = db.query(Job).all()
     if not jobs:
         return
         
+    # 1. Prune jobs outside India / Remote first
+    invalid_ids = [j.id for j in jobs if not is_india_or_remote_location(j.location)]
+    if invalid_ids:
+        print(f"Pruning {len(invalid_ids)} jobs outside India/Remote from database.")
+        db.query(Job).filter(Job.id.in_(invalid_ids)).delete(synchronize_session=False)
+        db.commit()
+        # Refresh jobs list for status checking
+        jobs = db.query(Job).all()
+        if not jobs:
+            return
+            
     print(f"Checking active status for {len(jobs)} stored jobs...")
     inactive_ids = []
     
@@ -304,11 +354,15 @@ def run_scraper(db: Session, hours_old: int = 48) -> list[Job]:
         source = rjob["source"]
         desc = rjob["description"]
         
-        # 1. Filter for fresher/0-1 yoe
+        # 1. Filter by location (must be in India or remote)
+        if not is_india_or_remote_location(location):
+            continue
+            
+        # 2. Filter for fresher/0-1 yoe
         if not is_fresher_job(title, desc):
             continue
             
-        # 2. Verify URL
+        # 3. Verify URL
         resolved_url, is_legit = verify_and_resolve_url(url, None)
         if not is_legit:
             continue
@@ -378,11 +432,15 @@ def run_scraper(db: Session, hours_old: int = 48) -> list[Job]:
                 if not matched_co:
                     continue
                     
-                # 2. Filter for fresher/0-1 yoe
+                # 2. Filter by location (must be in India or remote)
+                if not is_india_or_remote_location(job_location):
+                    continue
+                    
+                # 3. Filter for fresher/0-1 yoe
                 if not is_fresher_job(job_title, job_desc):
                     continue
                     
-                # 3. Verify and resolve URL legitimacy
+                # 4. Verify and resolve URL legitimacy
                 resolved_url, is_legit = verify_and_resolve_url(raw_url, matched_co.domain)
                 if not is_legit:
                     continue
