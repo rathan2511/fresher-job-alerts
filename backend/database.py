@@ -7,8 +7,12 @@ import os
 
 DATABASE_URL = os.environ.get("DATABASE_URL")
 if not DATABASE_URL:
-    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-    DATABASE_URL = f"sqlite:///{os.path.join(BASE_DIR, 'jobs.db')}"
+    # Auto-detect if a Render persistent disk is mounted at /data
+    if os.path.exists("/data") and os.access("/data", os.W_OK):
+        DATABASE_URL = "sqlite:////data/jobs.db"
+    else:
+        BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+        DATABASE_URL = f"sqlite:///{os.path.join(BASE_DIR, 'jobs.db')}"
 
 # SQLAlchemy requires postgresql:// instead of postgres:// scheme for connection
 if DATABASE_URL.startswith("postgres://"):
